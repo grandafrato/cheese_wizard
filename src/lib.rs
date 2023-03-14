@@ -1,34 +1,104 @@
+use serde::Deserialize;
 use std::error::Error;
 use uuid::Uuid;
 
-pub struct CheeseRating;
-pub struct CheeseRatingRequest;
-pub struct CheeseRegistry;
-pub struct UserCheeseRating<'a>(pub &'a str, pub CheeseRatingRequest);
-pub struct RegistryCheeseRating<'a>(pub &'a str, pub CheeseRatingRequest);
-
-pub struct UserData<'a> {
-    id: Uuid,
-    name: &'a str,
-    age: u8,
+#[derive(Deserialize)]
+pub struct CheeseRatingRequest {
+    rating: u8,
+    cheese: String,
 }
 
-impl<'a> UserData<'a> {
+pub struct UserData {
+    pub id: Uuid,
+    name: String,
+    age: u8,
+    pub cheese_ratings: Vec<UserCheeseRating>,
+}
+
+impl UserData {
     pub fn new() -> Self {
         Self {
             id: Uuid::new_v4(),
-            name: "",
+            name: "".to_owned(),
             age: 0,
+            cheese_ratings: Vec::new(),
         }
     }
 
     // Constructors for unit testing
-    fn name(self, name: &'a str) -> Self {
-        Self { name, ..self }
+    fn name(self, name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            ..self
+        }
     }
 
     fn age(self, age: u8) -> Self {
         Self { age, ..self }
+    }
+}
+
+pub struct CheeseRegistry(Vec<CheeseData>);
+
+impl CheeseRegistry {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+}
+
+impl IntoIterator for CheeseRegistry {
+    type Item = CheeseData;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct CheeseRating(u8);
+
+#[derive(Debug, PartialEq)]
+pub enum RatingBoundsError {
+    ExceedsMaximumRating,
+    BelowMinimumRating,
+}
+
+impl CheeseRating {
+    pub fn new(rating: u8) -> Result<Self, RatingBoundsError> {
+        if rating < 1 {
+            Err(RatingBoundsError::BelowMinimumRating)
+        } else if rating > 10 {
+            Err(RatingBoundsError::ExceedsMaximumRating)
+        } else {
+            Ok(Self(rating))
+        }
+    }
+}
+
+#[derive(PartialEq)]
+pub struct UserCheeseRating(pub Uuid, pub CheeseRating);
+
+#[derive(PartialEq, Debug)]
+pub struct RegistryCheeseRating(pub Uuid, pub CheeseRating);
+
+#[derive(Default)]
+pub struct CheeseData {
+    name: String,
+    pub ratings: Vec<RegistryCheeseRating>,
+}
+
+impl CheeseData {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    // Constructors for unit testing
+    fn name(self, name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            ..self
+        }
     }
 }
 
@@ -59,5 +129,32 @@ mod tests {
         let user_2 = UserData::new();
 
         assert_ne!(user_1.id, user_2.id);
+    }
+
+    #[test]
+    fn cheese_ratings_must_be_within_bounds() {
+        for rating_number in 1..=10 {
+            assert_eq!(
+                CheeseRating(rating_number),
+                CheeseRating::new(rating_number).unwrap()
+            );
+        }
+
+        assert_eq!(
+            Err(RatingBoundsError::ExceedsMaximumRating),
+            CheeseRating::new(11)
+        );
+        assert_eq!(
+            Err(RatingBoundsError::BelowMinimumRating),
+            CheeseRating::new(0)
+        );
+    }
+
+    #[test]
+    fn new_cheese_data() {
+        let cheese = CheeseData::new().name("Chedder");
+
+        assert_eq!(cheese.name, "Chedder");
+        assert_eq!(cheese.ratings, Vec::new())
     }
 }
