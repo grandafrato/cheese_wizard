@@ -81,12 +81,13 @@ impl IntoIterator for UserCheeseRatingMap {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CheeseRegistry(HashMap<String, CheeseData>);
 
 #[derive(Debug, PartialEq)]
 pub enum CheeseRegistryError {
     DuplicateCheeseName,
+    NoSuchCheeseInRegistry,
 }
 
 impl CheeseRegistry {
@@ -100,6 +101,14 @@ impl CheeseRegistry {
         } else {
             self.0.insert(cheese.name.clone(), cheese);
             Ok(())
+        }
+    }
+
+    pub fn get_mut(&mut self, cheese_name: &str) -> Result<&mut CheeseData, CheeseRegistryError> {
+        if let Some(cheese) = self.0.get_mut(cheese_name) {
+            Ok(cheese)
+        } else {
+            Err(CheeseRegistryError::NoSuchCheeseInRegistry)
         }
     }
 }
@@ -297,6 +306,28 @@ mod tests {
             registry.insert(cheese_1)
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn get_mut_cheese_from_registry() -> Result<(), CheeseRegistryError> {
+        let cheese = CheeseData::default().name("Chedder");
+        let mut registry = CheeseRegistry::new();
+
+        registry.insert(cheese.clone());
+
+        assert_eq!(registry.clone().into_iter().next().unwrap(), cheese);
+
+        let registry_clone = registry.clone();
+        let cheese_mut = registry.get_mut("Chedder")?;
+
+        assert_eq!(*cheese_mut, cheese);
+        cheese_mut.insert_rating(RegistryCheeseRating(
+            Uuid::new_v4(),
+            CheeseRating::new(5).unwrap(),
+        ));
+
+        assert_ne!(registry_clone, registry);
         Ok(())
     }
 
