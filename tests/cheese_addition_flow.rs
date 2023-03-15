@@ -21,11 +21,10 @@ fn adding_cheese_to_a_user() -> Result<(), Box<dyn Error>> {
 
     rate_cheese(cheese_rating_request, &mut user, &mut cheese_registry)?;
 
-    assert!(user.cheese_ratings.into_iter().any(|x| x
-        == UserCheeseRating(
-            "FooCheeseId".parse().unwrap(),
-            CheeseRating::new(5).unwrap()
-        )));
+    assert!(user
+        .cheese_ratings
+        .into_iter()
+        .any(|x| x == UserCheeseRating("FooCheeseId".to_string(), CheeseRating::new(5).unwrap())));
 
     assert!(cheese_registry.into_iter().all(|cheese| cheese
         .ratings

@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -38,24 +38,39 @@ impl UserData {
     }
 }
 
-pub struct CheeseRegistry(Vec<CheeseData>);
+#[derive(Clone)]
+pub struct CheeseRegistry(HashMap<String, CheeseData>);
+
+#[derive(Debug, PartialEq)]
+pub enum CheeseRegistryError {
+    DuplicateCheeseName,
+}
 
 impl CheeseRegistry {
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self(HashMap::new())
+    }
+
+    pub fn insert(&mut self, cheese: CheeseData) -> Result<(), CheeseRegistryError> {
+        if self.0.contains_key(&cheese.name) {
+            Err(CheeseRegistryError::DuplicateCheeseName)
+        } else {
+            self.0.insert(cheese.name.clone(), cheese);
+            Ok(())
+        }
     }
 }
 
 impl IntoIterator for CheeseRegistry {
     type Item = CheeseData;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = std::collections::hash_map::IntoValues<String, Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0.into_values()
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct CheeseRating(u8);
 
 #[derive(Debug, PartialEq)]
@@ -77,22 +92,18 @@ impl CheeseRating {
 }
 
 #[derive(PartialEq)]
-pub struct UserCheeseRating(pub Uuid, pub CheeseRating);
+pub struct UserCheeseRating(pub String, pub CheeseRating);
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct RegistryCheeseRating(pub Uuid, pub CheeseRating);
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Debug, Clone)]
 pub struct CheeseData {
     name: String,
     pub ratings: Vec<RegistryCheeseRating>,
 }
 
 impl CheeseData {
-    fn new() -> Self {
-        Self::default()
-    }
-
     // Constructors for unit testing
     fn name(self, name: &str) -> Self {
         Self {
@@ -152,9 +163,43 @@ mod tests {
 
     #[test]
     fn new_cheese_data() {
-        let cheese = CheeseData::new().name("Chedder");
+        let cheese = CheeseData::default().name("Chedder");
 
         assert_eq!(cheese.name, "Chedder");
         assert_eq!(cheese.ratings, Vec::new())
+    }
+
+    #[test]
+    fn insert_cheese_into_registry() -> Result<(), CheeseRegistryError> {
+        let cheese = CheeseData::default();
+        let mut registry = CheeseRegistry::new();
+
+        registry.insert(cheese.clone())?;
+
+        assert_eq!(registry.into_iter().next().unwrap(), cheese);
+        Ok(())
+    }
+
+    #[test]
+    fn cheese_names_are_unique_across_a_registry() -> Result<(), CheeseRegistryError> {
+        let cheese_1 = CheeseData::default().name("Foo");
+        let cheese_2 = CheeseData::default().name("Bar");
+
+        let mut registry = CheeseRegistry::new();
+
+        registry.insert(cheese_1.clone())?;
+        registry.insert(cheese_2.clone())?;
+
+        // The registry accepts and holds working inputs.
+        let registry_vec: Vec<CheeseData> = registry.clone().into_iter().collect();
+        assert!(registry_vec.contains(&cheese_1));
+        assert!(registry_vec.contains(&cheese_2));
+
+        assert_eq!(
+            Err(CheeseRegistryError::DuplicateCheeseName),
+            registry.insert(cheese_1)
+        );
+
+        Ok(())
     }
 }
