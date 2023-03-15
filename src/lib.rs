@@ -98,9 +98,36 @@ pub struct UserCheeseRating(pub String, pub CheeseRating);
 pub struct RegistryCheeseRating(pub Uuid, pub CheeseRating);
 
 #[derive(Default, PartialEq, Debug, Clone)]
+pub struct RegistryCheeseRatingMap(HashMap<Uuid, CheeseRating>);
+
+impl RegistryCheeseRatingMap {
+    fn insert(&mut self, RegistryCheeseRating(user_id, rating): RegistryCheeseRating) {
+        self.0.insert(user_id, rating);
+    }
+
+    fn get(&self, uuid: Uuid) -> CheeseRating {
+        self.0[&uuid]
+    }
+}
+
+impl IntoIterator for RegistryCheeseRatingMap {
+    type Item = RegistryCheeseRating;
+    type IntoIter = std::iter::Map<
+        std::collections::hash_map::IntoIter<Uuid, CheeseRating>,
+        fn((Uuid, CheeseRating)) -> Self::Item,
+    >;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0
+            .into_iter()
+            .map(|(user_id, cheese_rating)| RegistryCheeseRating(user_id, cheese_rating))
+    }
+}
+
+#[derive(Default, PartialEq, Debug, Clone)]
 pub struct CheeseData {
     name: String,
-    pub ratings: Vec<RegistryCheeseRating>,
+    pub ratings: RegistryCheeseRatingMap,
 }
 
 impl CheeseData {
@@ -110,6 +137,10 @@ impl CheeseData {
             name: name.to_owned(),
             ..self
         }
+    }
+
+    fn insert_rating(&mut self, rating: RegistryCheeseRating) {
+        self.ratings.insert(rating);
     }
 }
 
@@ -166,7 +197,33 @@ mod tests {
         let cheese = CheeseData::default().name("Chedder");
 
         assert_eq!(cheese.name, "Chedder");
-        assert_eq!(cheese.ratings, Vec::new())
+        assert_eq!(cheese.ratings, RegistryCheeseRatingMap::default())
+    }
+
+    #[test]
+    fn registered_cheese_ratings_accepts_a_registered_cheese_rating() {
+        let mut registered_cheese_ratings = RegistryCheeseRatingMap::default();
+        let user_id = Uuid::new_v4();
+        registered_cheese_ratings
+            .insert(RegistryCheeseRating(user_id, CheeseRating::new(5).unwrap()));
+
+        let cheese_ratings_vec: Vec<RegistryCheeseRating> =
+            registered_cheese_ratings.into_iter().collect();
+        assert_eq!(
+            cheese_ratings_vec[0],
+            RegistryCheeseRating(user_id, CheeseRating::new(5).unwrap())
+        )
+    }
+
+    #[test]
+    fn inserting_a_rating_into_cheese_data_adds_a_rating() {
+        let mut cheese = CheeseData::default();
+        let user_id = Uuid::new_v4();
+        let rating = RegistryCheeseRating(user_id, CheeseRating::new(5).unwrap());
+
+        cheese.insert_rating(rating);
+
+        assert_eq!(cheese.ratings.get(user_id), CheeseRating::new(5).unwrap());
     }
 
     #[test]
