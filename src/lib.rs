@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, fmt::Display};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -18,6 +18,18 @@ pub struct UserData {
 #[derive(Debug, PartialEq)]
 pub enum UserDataError {
     DuplicateCheeseName,
+}
+
+impl Error for UserDataError {}
+impl Display for UserDataError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateCheeseName => write!(
+                f,
+                "Cannot insert cheese, cheese names must be unique across the cheese_ratings."
+            ),
+        }
+    }
 }
 
 impl UserData {
@@ -90,6 +102,19 @@ pub enum CheeseRegistryError {
     NoSuchCheeseInRegistry,
 }
 
+impl Error for CheeseRegistryError {}
+impl Display for CheeseRegistryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoSuchCheeseInRegistry => write!(f, "No such cheese in the registry"),
+            Self::DuplicateCheeseName => write!(
+                f,
+                "Cannot insert cheese, cheese names must be unique across a registry."
+            ),
+        }
+    }
+}
+
 impl CheeseRegistry {
     pub fn new() -> Self {
         Self(HashMap::new())
@@ -129,6 +154,20 @@ pub struct CheeseRating(u8);
 pub enum RatingBoundsError {
     ExceedsMaximumRating,
     BelowMinimumRating,
+}
+
+impl Error for RatingBoundsError {}
+impl Display for RatingBoundsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ExceedsMaximumRating => {
+                write!(f, "The given rating exceeds the maximum rating of 10")
+            }
+            Self::BelowMinimumRating => {
+                write!(f, "The given rating is beloew the minimum rating of 1")
+            }
+        }
+    }
 }
 
 impl CheeseRating {
@@ -181,7 +220,7 @@ pub struct CheeseData {
 
 impl CheeseData {
     // Constructors for unit testing
-    fn name(self, name: &str) -> Self {
+    pub fn name(self, name: &str) -> Self {
         Self {
             name: name.to_owned(),
             ..self
@@ -198,6 +237,10 @@ pub fn rate_cheese(
     user: &mut UserData,
     registry: &mut CheeseRegistry,
 ) -> Result<(), Box<dyn Error>> {
+    let cheese = registry.get_mut(&request.cheese)?;
+    let rating = CheeseRating::new(request.rating)?;
+    cheese.insert_rating(RegistryCheeseRating(user.id, rating));
+    user.insert_rating(UserCheeseRating(request.cheese, rating))?;
     Ok(())
 }
 
@@ -314,7 +357,7 @@ mod tests {
         let cheese = CheeseData::default().name("Chedder");
         let mut registry = CheeseRegistry::new();
 
-        registry.insert(cheese.clone());
+        registry.insert(cheese.clone())?;
 
         assert_eq!(registry.clone().into_iter().next().unwrap(), cheese);
 
@@ -332,17 +375,19 @@ mod tests {
     }
 
     #[test]
-    fn inserting_a_rating_into_user_data_adds_a_rating() {
+    fn inserting_a_rating_into_user_data_adds_a_rating() -> Result<(), UserDataError> {
         let mut user = UserData::new();
         let cheese_name = "Chedder".to_owned();
         let rating = UserCheeseRating(cheese_name.clone(), CheeseRating::new(5).unwrap());
 
-        user.insert_rating(rating);
+        user.insert_rating(rating)?;
 
         assert_eq!(
             user.cheese_ratings.get(cheese_name),
             CheeseRating::new(5).unwrap()
         );
+
+        Ok(())
     }
 
     #[test]

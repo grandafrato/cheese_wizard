@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use cheese_wizard::{
-    rate_cheese, CheeseRating, CheeseRatingRequest, CheeseRegistry, RegistryCheeseRating,
-    UserCheeseRating, UserData,
+    rate_cheese, CheeseData, CheeseRating, CheeseRatingRequest, CheeseRegistry,
+    RegistryCheeseRating, UserCheeseRating, UserData,
 };
 
 #[test]
@@ -16,6 +16,7 @@ fn adding_cheese_to_a_user() -> Result<(), Box<dyn Error>> {
 
     let mut user = UserData::new();
     let mut cheese_registry = CheeseRegistry::new();
+    cheese_registry.insert(CheeseData::default().name("FooCheeseId"))?;
 
     let cheese_rating_request: CheeseRatingRequest = serde_json::from_str(request)?;
 
