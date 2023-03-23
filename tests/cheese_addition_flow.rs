@@ -1,9 +1,9 @@
 use std::error::Error;
 
-use cheese_wizard::{
-    rate_cheese, CheeseData, CheeseRating, CheeseRatingRequest, CheeseRegistry,
-    RegistryCheeseRating, UserCheeseRating, UserData,
+use cheese_wizard::cheese::{
+    CheeseData, CheeseRating, CheeseRatingRequest, CheeseRegistry, RegistryCheeseRating,
 };
+use cheese_wizard::{rate_cheese, UserCheeseRating, UserData};
 
 #[test]
 fn adding_cheese_to_a_user() -> Result<(), Box<dyn Error>> {
