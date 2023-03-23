@@ -1,2 +1,2 @@
 # Cheese Wizard
-Wheeeee
+It's an application for pairing users with a cheese.
