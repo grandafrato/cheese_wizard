@@ -1,14 +1,7 @@
-use serde::Deserialize;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
 use uuid::Uuid;
-
-#[derive(Deserialize)]
-pub struct CheeseRatingRequest {
-    pub rating: u8,
-    pub cheese: String,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CheeseRegistry(HashMap<String, CheeseData>);
@@ -131,7 +124,7 @@ impl IntoIterator for RegistryCheeseRatingMap {
 
 #[derive(Default, PartialEq, Debug, Clone)]
 pub struct CheeseData {
-    name: String,
+    pub name: String,
     pub ratings: RegistryCheeseRatingMap,
 }
 

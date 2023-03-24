@@ -1,14 +1,12 @@
 use std::error::Error;
 
-use cheese_wizard::cheese::{
-    CheeseData, CheeseRating, CheeseRatingRequest, CheeseRegistry, RegistryCheeseRating,
-};
-use cheese_wizard::requests::rate_cheese;
+use cheese_wizard::cheese::{CheeseData, CheeseRating, CheeseRegistry, RegistryCheeseRating};
+use cheese_wizard::requests::{self, CheeseRatingRequest, NewCheeseRequest};
 use cheese_wizard::user::{UserCheeseRating, UserData};
 
 #[test]
-fn adding_cheese_to_a_user() -> Result<(), Box<dyn Error>> {
-    let request = r#"
+fn cheese_rating_request() -> Result<(), Box<dyn Error>> {
+    let json_request = r#"
     {
         "rating": 5,
         "cheese": "FooCheeseId"
@@ -19,9 +17,9 @@ fn adding_cheese_to_a_user() -> Result<(), Box<dyn Error>> {
     let mut cheese_registry = CheeseRegistry::new();
     cheese_registry.insert(CheeseData::default().name("FooCheeseId"))?;
 
-    let cheese_rating_request: CheeseRatingRequest = serde_json::from_str(request)?;
+    let cheese_rating_request: CheeseRatingRequest = serde_json::from_str(json_request)?;
 
-    rate_cheese(cheese_rating_request, &mut user, &mut cheese_registry)?;
+    requests::rate_cheese(cheese_rating_request, &mut user, &mut cheese_registry)?;
 
     assert!(user
         .cheese_ratings
@@ -33,5 +31,25 @@ fn adding_cheese_to_a_user() -> Result<(), Box<dyn Error>> {
         .into_iter()
         .any(|RegistryCheeseRating(user_id, rating)| user_id == user.id
             && rating == CheeseRating::new(5).unwrap())));
+    Ok(())
+}
+
+#[test]
+fn new_cheese_request() -> Result<(), Box<dyn Error>> {
+    let json_request = r#"
+    {
+        "name": "Chedder"
+    }
+        "#;
+
+    let mut cheese_registry = CheeseRegistry::new();
+
+    let new_cheese_request: NewCheeseRequest = serde_json::from_str(json_request)?;
+
+    requests::create_new_cheese(new_cheese_request, &mut cheese_registry)?;
+
+    assert!(cheese_registry
+        .into_iter()
+        .any(|cheese| cheese.name == "Chedder"));
     Ok(())
 }

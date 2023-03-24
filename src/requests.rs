@@ -1,6 +1,20 @@
-use crate::cheese::{CheeseRating, CheeseRatingRequest, CheeseRegistry, RegistryCheeseRating};
+use crate::cheese::{
+    CheeseData, CheeseRating, CheeseRegistry, CheeseRegistryError, RegistryCheeseRating,
+};
 use crate::user::{UserCheeseRating, UserData};
+use serde::Deserialize;
 use std::error::Error;
+
+#[derive(Deserialize)]
+pub struct CheeseRatingRequest {
+    pub rating: u8,
+    pub cheese: String,
+}
+
+#[derive(Deserialize)]
+pub struct NewCheeseRequest {
+    name: String,
+}
 
 pub fn rate_cheese(
     request: CheeseRatingRequest,
@@ -11,5 +25,13 @@ pub fn rate_cheese(
     let rating = CheeseRating::new(request.rating)?;
     cheese.insert_rating(RegistryCheeseRating(user.id, rating));
     user.insert_rating(UserCheeseRating(request.cheese, rating))?;
+    Ok(())
+}
+
+pub fn create_new_cheese(
+    request: NewCheeseRequest,
+    registry: &mut CheeseRegistry,
+) -> Result<(), CheeseRegistryError> {
+    registry.insert(CheeseData::default().name(&request.name))?;
     Ok(())
 }
