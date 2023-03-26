@@ -13,7 +13,7 @@ pub struct CheeseRatingRequest {
 
 #[derive(Deserialize)]
 pub struct NewCheeseRequest {
-    name: String,
+    pub name: String,
 }
 
 pub fn rate_cheese(
@@ -34,4 +34,10 @@ pub fn create_new_cheese(
 ) -> Result<(), CheeseRegistryError> {
     registry.insert(CheeseData::default().name(&request.name))?;
     Ok(())
+}
+
+pub fn all_cheeses(registry: &CheeseRegistry) -> Vec<CheeseData> {
+    let mut cheeses: Vec<CheeseData> = registry.clone().into_iter().collect();
+    cheeses.sort();
+    cheeses
 }

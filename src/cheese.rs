@@ -57,7 +57,7 @@ impl IntoIterator for CheeseRegistry {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
 pub struct CheeseRating(u8);
 
 #[derive(Debug, PartialEq)]
@@ -95,7 +95,7 @@ impl CheeseRating {
 #[derive(PartialEq, Debug, Clone)]
 pub struct RegistryCheeseRating(pub Uuid, pub CheeseRating);
 
-#[derive(Default, PartialEq, Debug, Clone)]
+#[derive(Default, PartialEq, Eq, Debug, Clone)]
 pub struct RegistryCheeseRatingMap(HashMap<Uuid, CheeseRating>);
 
 impl RegistryCheeseRatingMap {
@@ -122,7 +122,19 @@ impl IntoIterator for RegistryCheeseRatingMap {
     }
 }
 
-#[derive(Default, PartialEq, Debug, Clone)]
+impl PartialOrd for RegistryCheeseRatingMap {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for RegistryCheeseRatingMap {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.iter().cmp(other.0.iter())
+    }
+}
+
+#[derive(Default, PartialEq, Eq, Debug, Clone, PartialOrd, Ord)]
 pub struct CheeseData {
     pub name: String,
     pub ratings: RegistryCheeseRatingMap,
